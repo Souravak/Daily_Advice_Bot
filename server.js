@@ -31,18 +31,17 @@ async function getSubscriberEmails() {
     .map(([email]) => email);
 }
 
-// 📧 Send email via EmailJS
-async function sendEmail(advice) {
+async function sendEmail(advice, toEmail) {
   const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       service_id: SERVICE_ID,
       template_id: TEMPLATE_ID,
       user_id: USER_ID,
       template_params: {
         advice_text: advice,
-        to_email: 'souravak211@gmail.com',
+        to_email: toEmail,
       },
     }),
   });
@@ -56,12 +55,15 @@ async function sendEmail(advice) {
 
 // 🕗 Run every day at 8:00 AM
 cron.schedule('30 1 * * *', async () => {
-  console.log('🕗 Running daily advice email task...');
+  console.log('🕗 Running daily advice email task (7:00 AM IST)...');
   try {
     const advice = await getAdvice();
-    await sendEmail(advice);
+    const emails = await getSubscriberEmails();
+    for (const email of emails) {
+      await sendEmail(advice, email);
+    }
   } catch (error) {
-    console.error('Error in cron job:', error);
+    console.error('❌ Error in cron job:', error);
   }
 });
 
