@@ -1,0 +1,20 @@
+{
+  "name": "daily-advice-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "node-cron": "^4.0.5",
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^7.0.3"
+  }
+}
