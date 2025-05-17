@@ -1,5 +1,13 @@
 const fetch = require('node-fetch');
 const cron = require('node-cron');
+const admin = require('firebase-admin');
+const fs = require('fs');
+
+// ✅ Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(JSON.parse(fs.readFileSync('firebase-key.json'))),
+});
+const db = admin.firestore();
 
 // ✅ EmailJS Config
 const SERVICE_ID = 'service_r32tjnm';
@@ -13,13 +21,21 @@ async function getAdvice() {
   return data.slip.advice;
 }
 
+// 🔥 Get subscriber emails where value === true
+async function getSubscriberEmails() {
+  const doc = await db.collection('daily_advice_subscribers').doc('subscribers_list').get();
+  const data = doc.data();
+  if (!data) return [];
+  return Object.entries(data)
+    .filter(([_, subscribed]) => subscribed === true)
+    .map(([email]) => email);
+}
+
 // 📧 Send email via EmailJS
 async function sendEmail(advice) {
   const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       service_id: SERVICE_ID,
       template_id: TEMPLATE_ID,
@@ -39,7 +55,7 @@ async function sendEmail(advice) {
 }
 
 // 🕗 Run every day at 8:00 AM
-cron.schedule('0 8 * * *', async () => {
+cron.schedule('30 1 * * *', async () => {
   console.log('🕗 Running daily advice email task...');
   try {
     const advice = await getAdvice();
@@ -49,8 +65,15 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-// Run immediately once on start (optional)
+// ▶️ Run once at startup (optional for testing)
 (async () => {
-  const advice = await getAdvice();
-  await sendEmail(advice);
+  try {
+    const advice = await getAdvice();
+    const emails = await getSubscriberEmails();
+    for (const email of emails) {
+      await sendEmail(advice, email);
+    }
+  } catch (err) {
+    console.error('❌ Error in startup run:', err);
+  }
 })();
